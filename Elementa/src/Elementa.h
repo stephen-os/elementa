@@ -28,10 +28,10 @@ namespace Elementa
             m_Width = 400;
             m_Height = 400;
 
-            m_Grid.resize(m_Width * m_Height, 0); // 0 = empty, 1 = sand
-            m_PixelData.resize(m_Width * m_Height * 4, 0); // RGBA
+            m_Grid.resize(m_Width * m_Height, 0);
+            m_PixelData.resize(m_Width * m_Height * 4, 0);
 
-            m_QuadAttributes.Texture = Lumina::Texture::Create(m_Width, m_Height);
+            m_Texture = Lumina::Texture::Create(m_Width, m_Height);
         }
 
         virtual void OnDetach() override
@@ -113,26 +113,14 @@ namespace Elementa
                 }
             }
 
-            m_QuadAttributes.Texture->SetData(m_PixelData.data(), m_PixelData.size());
-
-            glm::mat4 view = glm::lookAt(m_CameraPosition, m_CameraPosition + m_CameraFront, m_CameraUp);
-            glm::mat4 projection = glm::perspective(glm::radians(45.0f), m_ViewportSize.x / m_ViewportSize.y, 0.1f, 100.0f);
-            m_ViewProjectionMatrix = projection * view;
+            m_Texture->SetData(m_PixelData.data(), m_PixelData.size());
         }
 
         virtual void OnUIRender() override
         {
             ImGui::Begin("Viewport");
-
-            ImVec2 viewportSize = ImGui::GetContentRegionAvail();
-            m_ViewportSize = { viewportSize.x, viewportSize.y };
-            Lumina::Renderer::SetResolution(m_ViewportSize.x, m_ViewportSize.y);
-
-            Lumina::Renderer::Begin(m_ViewProjectionMatrix);
-            Lumina::Renderer::DrawQuad(m_QuadAttributes);
-            Lumina::Renderer::End();
-
-            ImGui::Image((void*)Lumina::Renderer::GetImage(), viewportSize);
+			ImVec2 viewportSize = ImGui::GetContentRegionAvail();
+            ImGui::Image((void*)m_Texture->GetID(), viewportSize);
             ImGui::End();
 
             ImGui::Begin("Settings");
@@ -151,15 +139,8 @@ namespace Elementa
             ImGui::End();
         }
 
-    private:
-        Lumina::QuadAttributes m_QuadAttributes;
-
-        glm::vec3 m_CameraPosition = { 0.0f, 0.0f, 1.5f };
-        glm::vec3 m_CameraFront = { 0.0f, 0.0f, -1.0f };
-        glm::vec3 m_CameraUp = { 0.0f, 1.0f, 0.0f };
-
-        glm::mat4 m_ViewProjectionMatrix;
-        glm::vec2 m_ViewportSize = { 1.0f, 1.0f };
+    private:        
+        Lumina::Shared<Lumina::Texture> m_Texture; 
 
         std::vector<uint8_t> m_PixelData;
         std::vector<uint8_t> m_Grid;
