@@ -1,0 +1,6 @@
+[submodule "Lumina"]
+	path = Lumina
+	url = https://github.com/stephen-os/Lumina.git
+[submodule "lumina"]
+	path = lumina
+	url = https://github.com/stephen-os/lumina.git
