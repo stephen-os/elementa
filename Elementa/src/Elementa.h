@@ -16,6 +16,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
+#include "Elements/Sand.h"
+#include "Elements/Water.h"
+
 namespace Elementa
 {
     class Elementa : public Lumina::Layer
@@ -29,7 +32,7 @@ namespace Elementa
             m_Height = 400;
 
             m_Grid.resize(m_Width * m_Height, 0);
-            m_PixelData.resize(m_Width * m_Height * 4, 0);
+            m_PixelData.resize(m_Width * m_Height, {0.0f, 0.0f, 0.0f, 255.0f});
 
             m_Texture = Lumina::Texture::Create(m_Width, m_Height);
         }
@@ -47,73 +50,52 @@ namespace Elementa
 
             int spawnX = m_Width / 2;
             if (rand() % 3 == 0 && m_Grid[spawnX] == 0)
-                m_Grid[spawnX] = 1;
+                m_Grid[spawnX] = 2;
 
             // Sand physics (bottom-up)
             for (int y = m_Height - 2; y >= 0; --y) {
                 for (int x = 0; x < m_Width; ++x) {
-                    int idx = y * m_Width + x;
-                    if (m_Grid[idx] != 1)
-                        continue;
-
-                    int below = (y + 1) * m_Width + x;
-                    int belowLeft = (y + 1) * m_Width + x - 1;
-                    int belowRight = (y + 1) * m_Width + x + 1;
-
-                    // Fall straight down
-                    if (y + 1 < m_Height && m_Grid[below] == 0) {
-                        m_Grid[below] = 1;
-                        m_Grid[idx] = 0;
-                        continue;
+                    
+                    switch (m_Grid[y * m_Width + x])
+                    {
+					case 0:
+						break;
+					case 1:
+						Sand::Update(m_Grid, m_Width, m_Height, x, y);
+						break;
+                    case 2:
+						Water::Update(m_Grid, m_Width, m_Height, x, y);
+						break;
+                    default:
+                        break;
                     }
-
-                    // Fall diagonally (randomize direction)
-                    bool leftFirst = rand() % 2 == 0;
-                    if (leftFirst) {
-                        if (x > 0 && y + 1 < m_Height && m_Grid[belowLeft] == 0) {
-                            m_Grid[belowLeft] = 1;
-                            m_Grid[idx] = 0;
-                        }
-                        else if (x + 1 < m_Width && y + 1 < m_Height && m_Grid[belowRight] == 0) {
-                            m_Grid[belowRight] = 1;
-                            m_Grid[idx] = 0;
-                        }
-                    }
-                    else {
-                        if (x + 1 < m_Width && y + 1 < m_Height && m_Grid[belowRight] == 0) {
-                            m_Grid[belowRight] = 1;
-                            m_Grid[idx] = 0;
-                        }
-                        else if (x > 0 && y + 1 < m_Height && m_Grid[belowLeft] == 0) {
-                            m_Grid[belowLeft] = 1;
-                            m_Grid[idx] = 0;
-                        }
-                    }
+                    
+                    // Sand::Update(m_Grid, m_Width, m_Height, x, y);
                 }
             }
 
-            // Convert to pixel data
             for (int y = 0; y < m_Height; ++y) {
                 for (int x = 0; x < m_Width; ++x) {
                     int idx = y * m_Width + x;
-                    int pixelIdx = idx * 4;
 
-                    if (m_Grid[idx] == 1) {
-                        m_PixelData[pixelIdx + 0] = 194; // R
-                        m_PixelData[pixelIdx + 1] = 178; // G
-                        m_PixelData[pixelIdx + 2] = 128; // B
-                        m_PixelData[pixelIdx + 3] = 255; // A
-                    }
-                    else {
-                        m_PixelData[pixelIdx + 0] = 0;
-                        m_PixelData[pixelIdx + 1] = 0;
-                        m_PixelData[pixelIdx + 2] = 0;
-                        m_PixelData[pixelIdx + 3] = 255;
+                    switch (m_Grid[idx])
+                    {
+                        case 0:
+                            m_PixelData[idx] = glm::u8vec4(0, 0, 0, 255); // black pixel
+                            break;
+						case 1:
+							m_PixelData[idx] = Sand::GetColor(); // returns glm::u8vec4
+							break;
+						case 2:
+							m_PixelData[idx] = Water::GetColor(); // returns glm::u8vec4
+							break;
+                    default:
+                        break;
                     }
                 }
             }
 
-            m_Texture->SetData(m_PixelData.data(), m_PixelData.size());
+            m_Texture->SetData(m_PixelData.data(), m_PixelData.size() * 4);
         }
 
         virtual void OnUIRender() override
@@ -129,7 +111,7 @@ namespace Elementa
 				m_Grid.clear();
 				m_Grid.resize(m_Width * m_Height, 0);
                 m_PixelData.clear();
-				m_PixelData.resize(m_Width * m_Height * 4, 0);
+                m_PixelData.resize(m_Width * m_Height, {0.0f, 0.0f, 0.0f, 255.0f});
                 printf("Grid size: %dx%d\n", m_Width, m_Height);
             }
 			ImGui::End();
@@ -141,12 +123,12 @@ namespace Elementa
 
     private:        
         Lumina::Shared<Lumina::Texture> m_Texture; 
-
-        std::vector<uint8_t> m_PixelData;
+        
+        std::vector<glm::u8vec4> m_PixelData;
         std::vector<uint8_t> m_Grid;
 
-        int m_Width = 40;
-        int m_Height = 40;
+        int m_Width;
+        int m_Height;
 
         Lumina::Timer m_FrameTimer;
         float m_FPS = 0.0f;
