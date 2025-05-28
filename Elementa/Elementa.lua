@@ -26,6 +26,8 @@ project "Elementa"
         "Lumina",
     }
 
+   buildoptions { "/utf-8" }
+
    targetdir ("../bin/" .. outputdir .. "/%{prj.name}")
    objdir ("../bin-int/" .. outputdir .. "/%{prj.name}")
 
